@@ -5,50 +5,44 @@ uniform float iTime;
 uniform float uSpeed;
 uniform float uSpread;
 uniform float uSize;
-uniform float uComplexity;
 uniform int uBallCount;
 uniform vec3 uColor;
+uniform float uMorphSpeed;
 varying vec2 vUv;
 
-#define MAX_BALLS 500
-#define EARLY_EXIT 1 // Optimization flag
-
-vec2 getBallPosition(int id, float time) {
-    float harmonicX = 1.0 + float(id % 3) * uComplexity;
-    float harmonicY = 1.0 + float((id + 1) % 4) * uComplexity;
-    float phase = float(id) * 0.2;
-    
-    return vec2(
-        cos(time * uSpeed * harmonicX + phase) * uSpread,
-        sin(time * uSpeed * harmonicY * 1.3 + phase) * uSpread
-    );
-}
-
 void main() {
-    vec2 uv = (vUv - 0.5) * vec2(iResolution.x/iResolution.y, 1.0);
+    // Normalized coordinates with aspect ratio correction
+    vec2 uv = (vUv - 0.5) * vec2(iResolution.x/iResolution.y, 1.0) * 2.0;
+    
     float field = 0.0;
     float sizeSquared = uSize * uSize;
-    float threshold = 0.7;
     
-    // Optimized loop with early exit
-    for (int i = 0; i < MAX_BALLS; i++) {
-        #if EARLY_EXIT
+    // Basic motion with morphing effect
+    for (int i = 0; i < 500; i++) {
         if (i >= uBallCount) break;
-        #endif
         
-        vec2 center = getBallPosition(i, iTime);
-        vec2 delta = uv - center;
-        float invDistSq = sizeSquared / dot(delta, delta);
+        float angle = float(i) * (6.283185 / float(uBallCount));
         
-        // Early exit if contribution becomes negligible
-        if (invDistSq < 0.001) continue;
+        // Two different motion patterns to blend between
+        vec2 pattern1 = vec2(
+            cos(angle + iTime * uSpeed) * uSpread,
+            sin(angle + iTime * uSpeed) * uSpread
+        );
         
-        field += invDistSq;
+        vec2 pattern2 = vec2(
+            cos(angle * 2.0 + iTime * uSpeed * 0.5) * uSpread * 0.8,
+            sin(angle * 3.0 + iTime * uSpeed * 0.7) * uSpread * 0.8
+        );
         
-        // Early threshold check
-        if (field > 50.0) break; // Empirical value for 500 balls
+        // Blend between patterns based on time
+        float blend = sin(iTime * uMorphSpeed) * 0.5 + 0.5;
+        vec2 center = mix(pattern1, pattern2, blend);
+        
+        float dist = length(uv - center);
+        field += sizeSquared / (dist * dist);
     }
     
-    float mask = smoothstep(threshold, threshold + 0.02, field);
+    // Visualize with threshold
+    float mask = smoothstep(0.5, 0.55, field);
     gl_FragColor = vec4(uColor * mask, 1.0);
 }

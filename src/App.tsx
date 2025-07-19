@@ -1,7 +1,6 @@
 import { Canvas } from "@react-three/fiber";
 import { MetaballPlane } from "./components/MetaballPlane";
 import "./index.css";
-import metaballShader from "./shaders/metaballShader.glsl?raw";
 
 function App() {
     return (
