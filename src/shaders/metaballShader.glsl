@@ -3,13 +3,24 @@ precision highp float;
 uniform vec2 iResolution;
 uniform float iTime;
 uniform float uSpeed;
+uniform float uSpread;
 uniform float uSize;
-uniform float uSpacing;
-uniform float uThreshold;
-uniform float uSmoothness;
-uniform vec3 uColor;
+uniform float uComplexity;
 uniform int uBallCount;
+uniform vec3 uColor;
 varying vec2 vUv;
+
+// New motion function - Phase 1 implementation
+vec2 getBallPosition(int id, float time) {
+    float harmonicX = 1.0 + float(id % 3) * uComplexity;
+    float harmonicY = 1.0 + float((id + 1) % 4) * uComplexity;
+    float phase = float(id) * 0.2;
+    
+    return vec2(
+        cos(time * uSpeed * harmonicX + phase) * uSpread,
+        sin(time * uSpeed * harmonicY * 1.3 + phase) * uSpread
+    );
+}
 
 void main() {
     // Normalized coordinates with aspect ratio correction
@@ -18,31 +29,16 @@ void main() {
     float field = 0.0;
     float sizeSquared = uSize * uSize;
     
-    // Generate metaballs based on count
-    for (int i = 0; i < 6; i++) {
+    // Generate metaballs with new motion
+    for (int i = 0; i < 500; i++) { // Increased max to match Leva max
         if (i >= uBallCount) break;
         
-        // Calculate unique position for each ball
-        float angle = float(i) * (6.283185 / float(uBallCount));
-        float timeOffset = float(i) * 0.5;
-        vec2 center = vec2(
-            sin(iTime * uSpeed + timeOffset) * uSpacing,
-            cos(iTime * uSpeed + timeOffset) * uSpacing
-        );
-        
-        // Rotate positions around circle
-        center = vec2(
-            center.x * cos(angle) - center.y * sin(angle),
-            center.x * sin(angle) + center.y * cos(angle)
-        );
-        
+        vec2 center = getBallPosition(i, iTime);
         float dist = length(uv - center);
         field += sizeSquared / (dist * dist);
     }
     
-    // Smooth threshold with controls
-    float mask = smoothstep(uThreshold, uThreshold + uSmoothness, field);
-    
-    // Apply color
+    // Visualize with smooth threshold
+    float mask = smoothstep(0.7, 0.72, field);
     gl_FragColor = vec4(uColor * mask, 1.0);
 }

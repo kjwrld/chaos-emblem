@@ -1,5 +1,5 @@
 import { useFrame, useThree } from "@react-three/fiber";
-import { useRef, useEffect } from "react";
+import { useRef } from "react";
 import * as THREE from "three";
 import { useControls } from "leva";
 import metaballShader from "../shaders/metaballShader.glsl?raw";
@@ -8,19 +8,14 @@ export function MetaballPlane() {
     const materialRef = useRef<THREE.ShaderMaterial>(null);
     const { size } = useThree();
 
-    // Leva controls with ball count
+    // Leva controls - simplified for motion focus
     const controls = useControls("Metaballs", {
-        ballCount: { value: 2, min: 1, max: 6, step: 1 },
-        speed: { value: 0.5, min: 0, max: 2, step: 0.1 },
-        size: { value: 0.2, min: 0.1, max: 0.5, step: 0.01 },
-        spacing: { value: 0.3, min: 0.1, max: 1, step: 0.05 },
-        threshold: { value: 0.7, min: 0.1, max: 1, step: 0.01 },
-        smoothness: { value: 0.02, min: 0.001, max: 0.1, step: 0.001 },
-        color: { value: "#ffffff" },
+        ballCount: { value: 250, min: 1, max: 500, step: 1 },
+        speed: { value: 0.8, min: 0, max: 2, step: 0.1 },
+        spread: { value: 0.95, min: 0.1, max: 1.5, step: 0.05 },
+        size: { value: 0.01, min: 0.01, max: 0.5, step: 0.01 },
+        complexity: { value: 1.5, min: 0.5, max: 3, step: 0.1 }, // New control
     });
-
-    // Create a key that changes when controls affecting the shader change
-    const shaderKey = `${controls.ballCount}-${controls.size}-${controls.spacing}`;
 
     useFrame(({ clock }) => {
         if (materialRef.current) {
@@ -29,16 +24,11 @@ export function MetaballPlane() {
                 size.width,
                 size.height
             );
+            // Only update motion-related uniforms each frame
             materialRef.current.uniforms.uSpeed.value = controls.speed;
-            materialRef.current.uniforms.uSize.value = controls.size;
-            materialRef.current.uniforms.uSpacing.value = controls.spacing;
-            materialRef.current.uniforms.uThreshold.value = controls.threshold;
-            materialRef.current.uniforms.uSmoothness.value =
-                controls.smoothness;
-            materialRef.current.uniforms.uColor.value = new THREE.Color(
-                controls.color
-            );
-            materialRef.current.uniforms.uBallCount.value = controls.ballCount;
+            materialRef.current.uniforms.uSpread.value = controls.spread;
+            materialRef.current.uniforms.uComplexity.value =
+                controls.complexity;
         }
     });
 
@@ -46,20 +36,19 @@ export function MetaballPlane() {
         <mesh>
             <planeGeometry args={[2, 2]} />
             <shaderMaterial
-                key={shaderKey} // Force re-creation when key changes
                 ref={materialRef}
+                key={`mb-${controls.ballCount}-${controls.size}`} // Only rebuild when these change
                 uniforms={{
                     iTime: { value: 0 },
                     iResolution: {
                         value: new THREE.Vector2(size.width, size.height),
                     },
                     uSpeed: { value: controls.speed },
+                    uSpread: { value: controls.spread },
                     uSize: { value: controls.size },
-                    uSpacing: { value: controls.spacing },
-                    uThreshold: { value: controls.threshold },
-                    uSmoothness: { value: controls.smoothness },
-                    uColor: { value: new THREE.Color(controls.color) },
+                    uComplexity: { value: controls.complexity },
                     uBallCount: { value: controls.ballCount },
+                    uColor: { value: new THREE.Color("#ffffff") },
                 }}
                 fragmentShader={metaballShader}
                 vertexShader={`
