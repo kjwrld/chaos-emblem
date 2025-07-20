@@ -30,21 +30,21 @@ export function MetaballPlane() {
         speed: { value: 1.0, min: 0, max: 2, step: 0.1 }, // Controls how fast the individual metaballs move in their patterns
         spread: { value: 0.5, min: 0.1, max: 1.5, step: 0.05 },
         size: { value: 0.01, min: 0.01, max: 0.5, step: 0.01 },
-        morphSpeed: { value: 7.5, min: 0.01, max: 10.0, step: 0.01 },
+        morphSpeed: { value: 5.0, min: 0.01, max: 10.0, step: 0.01 },
         holdDuration: { value: 10.0, min: 0.1, max: 10.0, step: 0.1 },
-        transitionDuration: { value: 7.5, min: 0.1, max: 10.0, step: 0.1 },
+        transitionDuration: { value: 5.0, min: 0.1, max: 10.0, step: 0.1 },
         // Lemniscate controls matching your InfinityTube parameters
-        overallDistortion: { value: 0.03, min: 0.0, max: 1.0, step: 0.01 }, // Like your 0.425
-        vDistortionMultiplier: { value: 1.0, min: -3.0, max: 3.0, step: 0.05 }, // Like your 1.25
-        lemniscateScale: { value: 1.0, min: 0.1, max: 3.0, step: 0.1 }, // Overall scale
+        overallDistortion: { value: 0.0, min: 0.0, max: 1.0, step: 0.01 }, // Like your 0.425
+        vDistortionMultiplier: { value: 0.0, min: -3.0, max: 3.0, step: 0.05 }, // Like your 1.25
+        lemniscateScale: { value: 0.75, min: 0.1, max: 3.0, step: 0.1 }, // Overall scale
         lemniscateScaleX: { value: 0.5, min: 0.1, max: 2.0, step: 0.05 }, // Like your scaleX
         lemniscateScaleY: { value: 1.0, min: 0.1, max: 2.0, step: 0.05 }, // Like your scaleY
 
         // NEW: Logo distortion controls
-        topWidthMultiplier: { value: 1.4, min: 0.5, max: 2.5, step: 0.05 },
-        bottomWidthMultiplier: { value: 0.7, min: 0.3, max: 1.5, step: 0.05 },
-        centerOffset: { value: -0.15, min: -0.5, max: 0.5, step: 0.01 },
-        asymmetryStrength: { value: 0.8, min: 0.0, max: 1.0, step: 0.05 },
+        topWidthMultiplier: { value: 2, min: 0.5, max: 2.5, step: 0.05 },
+        bottomWidthMultiplier: { value: 0.75, min: 0.3, max: 1.5, step: 0.05 },
+        centerOffset: { value: -0.1, min: -0.5, max: 0.5, step: 0.01 },
+        asymmetryStrength: { value: 0.75, min: 0.0, max: 1.0, step: 0.05 },
     });
 
     // Handle resize

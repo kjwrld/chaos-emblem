@@ -121,7 +121,7 @@ void main() {
         vec2 pattern2 = getLemniscatePosition(lemniscateParam, iTime);
         
         // Blend between patterns
-        vec2 center = mix(pattern1, pattern2, blend);
+        vec2 center = mix(pattern2, pattern2, blend);
         
         float dist = length(uv - center);
         field += sizeSquared / (dist * dist);
