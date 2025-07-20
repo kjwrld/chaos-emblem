@@ -10,7 +10,60 @@ uniform float uSize;
 uniform int uBallCount;
 uniform vec3 uColor;
 uniform float uMorphSpeed;
+uniform float uHoldDuration; // Seconds to hold at each pattern
+uniform float uTransitionDuration; // Seconds for morph transition
+
+// Lemniscate distortion uniforms (matching your InfinityTube approach)
+uniform float uOverallDistortion; // Main distortion amount
+uniform float uVDistortionMultiplier; // Vertical distortion multiplier (like your 1.25)
+uniform float uLemniscateScale; // Overall scale
+uniform vec2 uLemniscateAxisScale; // X and Y axis scaling
+
 varying vec2 vUv;
+
+float getMorphState(float time) {
+    float cycle = uHoldDuration * 2.0 + uTransitionDuration * 2.0;
+    float phase = mod(time, cycle);
+    
+    if (phase < uHoldDuration) {
+        return 0.0; // Hold first pattern
+    } else if (phase < uHoldDuration + uTransitionDuration) {
+        // Smooth transition to second pattern
+        return smoothstep(0.0, 1.0, (phase - uHoldDuration) / uTransitionDuration);
+    } else if (phase < uHoldDuration * 2.0 + uTransitionDuration) {
+        return 1.0; // Hold second pattern
+    } else {
+        // Smooth transition back to first pattern
+        return 1.0 - smoothstep(0.0, 1.0, (phase - (uHoldDuration * 2.0 + uTransitionDuration)) / uTransitionDuration);
+    }
+}
+
+// Lemniscate with distortion matching your InfinityTube approach
+vec2 getLemniscatePosition(float t, float time) {
+    // Base lemniscate curve
+    vec2 curvePoint = vec2(
+        sin(t),
+        sin(t) * cos(t)
+    );
+    
+    // Apply your InfinityTube distortion approach
+    float angle = t; // Using t as our angle parameter
+    
+    // Horizontal distortion: 1 + overallDistortion * sin((angle + time) * 2)
+    float distortion = 1.0 + uOverallDistortion * sin(angle + time);
+    
+    // Vertical distortion: 1 + overallDistortion * -cos((angle + time) * 2) * 1.25
+    float v_distortion = 1.0 + uOverallDistortion * cos(angle + time) * uVDistortionMultiplier;
+    
+    // Apply distortions (matching your InfinityTube logic)
+    curvePoint.y *= distortion * v_distortion;
+    
+    // Apply scaling
+    curvePoint *= uLemniscateScale;
+    curvePoint *= uLemniscateAxisScale;
+    
+    return curvePoint;
+}
 
 void main() {
     // Normalized coordinates with aspect ratio correction
@@ -18,31 +71,30 @@ void main() {
     
     float field = 0.0;
     float sizeSquared = uSize * uSize;
+    float blend = getMorphState(iTime);
     
-    // Basic motion with morphing effect
+    // Enhanced motion with lemniscate pattern
     for (int i = 0; i < 500; i++) {
         if (i >= uBallCount) break;
         
         float angle = float(i) * (TWO_PI / float(uBallCount));
         
-        // Two different motion patterns to blend between
+        // Pattern 1: Original circular motion
         vec2 pattern1 = vec2(
-            cos(angle + iTime * uSpeed) * uSpread,
+            -cos(angle + iTime * uSpeed) * uSpread,
             sin(angle + iTime * uSpeed) * uSpread
         );
         
-        vec2 pattern2 = vec2(
-            cos(angle * 2.0 + iTime * uSpeed * 0.5) * uSpread * 0.8,
-            sin(angle * 3.0 + iTime * uSpeed * 0.7) * uSpread * 0.8
-        );
+        // Pattern 2: Customizable Lemniscate with InfinityTube-style distortion
+        float lemniscateParam = angle + iTime * uSpeed * 0.3;
+        vec2 pattern2 = getLemniscatePosition(lemniscateParam, iTime);
         
-        // Blend between patterns based on time
-        float blend = sin(iTime * uMorphSpeed) * 0.5 + 0.5;
-        vec2 center = mix(pattern1, pattern2, blend);
+        // Blend between patterns
+        vec2 center = mix(pattern2, pattern2, blend);
         
         // Optimized distance calculation
         float dist = length(uv - center);
-        field += sizeSquared * inversesqrt(dist * dist * dist * dist);
+        field += sizeSquared / (dist * dist);
     }
     
     // Visualize with threshold

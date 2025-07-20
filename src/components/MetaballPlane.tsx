@@ -34,12 +34,17 @@ export function MetaballPlane() {
         holdDuration: { value: 10.0, min: 0.1, max: 10.0, step: 0.1 },
         transitionDuration: { value: 7.5, min: 0.1, max: 10.0, step: 0.1 },
         // Lemniscate controls matching your InfinityTube parameters
-        overallDistortion: { value: 0.2, min: 0.0, max: 1.0, step: 0.01 }, // Like your 0.425
-        vDistortionMultiplier: { value: 1.0, min: 0.1, max: 3.0, step: 0.05 }, // Like your 1.25
-        distortionFreq: { value: 0.0, min: 0.0, max: 5.0, step: 0.1 }, // Like your * 2
+        overallDistortion: { value: 0.03, min: 0.0, max: 1.0, step: 0.01 }, // Like your 0.425
+        vDistortionMultiplier: { value: 1.0, min: -3.0, max: 3.0, step: 0.05 }, // Like your 1.25
         lemniscateScale: { value: 1.0, min: 0.1, max: 3.0, step: 0.1 }, // Overall scale
         lemniscateScaleX: { value: 0.5, min: 0.1, max: 2.0, step: 0.05 }, // Like your scaleX
         lemniscateScaleY: { value: 1.0, min: 0.1, max: 2.0, step: 0.05 }, // Like your scaleY
+
+        // NEW: Logo distortion controls
+        topWidthMultiplier: { value: 1.4, min: 0.5, max: 2.5, step: 0.05 },
+        bottomWidthMultiplier: { value: 0.7, min: 0.3, max: 1.5, step: 0.05 },
+        centerOffset: { value: -0.15, min: -0.5, max: 0.5, step: 0.01 },
+        asymmetryStrength: { value: 0.8, min: 0.0, max: 1.0, step: 0.05 },
     });
 
     // Handle resize
@@ -85,14 +90,21 @@ export function MetaballPlane() {
                 controls.overallDistortion;
             materialRef.current.uniforms.uVDistortionMultiplier.value =
                 controls.vDistortionMultiplier;
-            materialRef.current.uniforms.uDistortionFreq.value =
-                controls.distortionFreq;
             materialRef.current.uniforms.uLemniscateScale.value =
                 controls.lemniscateScale;
             materialRef.current.uniforms.uLemniscateAxisScale.value.set(
                 controls.lemniscateScaleX,
                 controls.lemniscateScaleY
             );
+
+            materialRef.current.uniforms.uTopWidthMultiplier.value =
+                controls.topWidthMultiplier;
+            materialRef.current.uniforms.uBottomWidthMultiplier.value =
+                controls.bottomWidthMultiplier;
+            materialRef.current.uniforms.uCenterOffset.value =
+                controls.centerOffset;
+            materialRef.current.uniforms.uAsymmetryStrength.value =
+                controls.asymmetryStrength;
 
             if (
                 !materialRef.current.uniforms.iResolution.value.equals(
@@ -127,7 +139,6 @@ export function MetaballPlane() {
                     uVDistortionMultiplier: {
                         value: controls.vDistortionMultiplier,
                     },
-                    uDistortionFreq: { value: controls.distortionFreq },
                     uLemniscateScale: { value: controls.lemniscateScale },
                     uLemniscateAxisScale: {
                         value: new THREE.Vector2(
@@ -135,6 +146,12 @@ export function MetaballPlane() {
                             controls.lemniscateScaleY
                         ),
                     },
+                    uTopWidthMultiplier: { value: controls.topWidthMultiplier },
+                    uBottomWidthMultiplier: {
+                        value: controls.bottomWidthMultiplier,
+                    },
+                    uCenterOffset: { value: controls.centerOffset },
+                    uAsymmetryStrength: { value: controls.asymmetryStrength },
                 }}
                 fragmentShader={metaballShader}
                 vertexShader={`

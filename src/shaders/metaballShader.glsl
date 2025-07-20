@@ -10,15 +10,21 @@ uniform float uSize;
 uniform int uBallCount;
 uniform vec3 uColor;
 uniform float uMorphSpeed;
-uniform float uHoldDuration; // Seconds to hold at each pattern
-uniform float uTransitionDuration; // Seconds for morph transition
+uniform float uHoldDuration;
+uniform float uTransitionDuration;
 
-// Lemniscate distortion uniforms (matching your InfinityTube approach)
-uniform float uOverallDistortion; // Main distortion amount
-uniform float uVDistortionMultiplier; // Vertical distortion multiplier (like your 1.25)
-uniform float uDistortionFreq; // Distortion frequency multiplier (like your * 2)
-uniform float uLemniscateScale; // Overall scale
-uniform vec2 uLemniscateAxisScale; // X and Y axis scaling
+// Lemniscate distortion uniforms
+uniform float uOverallDistortion;
+uniform float uVDistortionMultiplier;
+uniform float uDistortionFreq;
+uniform float uLemniscateScale;
+uniform vec2 uLemniscateAxisScale;
+
+// New asymmetric distortion uniforms for logo matching
+uniform float uTopWidthMultiplier;    // How much wider the top should be
+uniform float uBottomWidthMultiplier; // How much narrower the bottom should be  
+uniform float uCenterOffset;          // Vertical offset for the center point
+uniform float uAsymmetryStrength;     // Overall strength of the asymmetric effect
 
 varying vec2 vUv;
 
@@ -27,19 +33,46 @@ float getMorphState(float time) {
     float phase = mod(time, cycle);
     
     if (phase < uHoldDuration) {
-        return 0.0; // Hold first pattern
+        return 0.0;
     } else if (phase < uHoldDuration + uTransitionDuration) {
-        // Smooth transition to second pattern
         return smoothstep(0.0, 1.0, (phase - uHoldDuration) / uTransitionDuration);
     } else if (phase < uHoldDuration * 2.0 + uTransitionDuration) {
-        return 1.0; // Hold second pattern
+        return 1.0;
     } else {
-        // Smooth transition back to first pattern
         return 1.0 - smoothstep(0.0, 1.0, (phase - (uHoldDuration * 2.0 + uTransitionDuration)) / uTransitionDuration);
     }
 }
 
-// Lemniscate with distortion matching your InfinityTube approach
+// Function to apply asymmetric distortion based on vertical position
+vec2 applyLogoDistortion(vec2 point) {
+    float y = point.y;
+    
+    // Create smooth transitions between top and bottom scaling
+    // Map y from [-1, 1] to [0, 1] for easier interpolation
+    float normalizedY = (y + 1.0) * 0.5;
+    
+    // Create asymmetric scaling factors
+    // Top gets wider, bottom gets narrower
+    float topInfluence = smoothstep(0.3, 0.8, normalizedY);
+    float bottomInfluence = smoothstep(0.8, 0.3, normalizedY);
+    
+    float widthMultiplier = mix(
+        uBottomWidthMultiplier,  // Bottom (narrower)
+        uTopWidthMultiplier,     // Top (wider)
+        topInfluence
+    );
+    
+    // Apply asymmetric scaling
+    point.x *= mix(1.0, widthMultiplier, uAsymmetryStrength);
+    
+    // Apply center offset - stronger effect in the middle
+    float centerInfluence = 1.0 - abs(y); // Stronger at center (y=0)
+    point.y += uCenterOffset * centerInfluence * uAsymmetryStrength;
+    
+    return point;
+}
+
+// Enhanced lemniscate with logo-matching distortion
 vec2 getLemniscatePosition(float t, float time) {
     // Base lemniscate curve
     vec2 curvePoint = vec2(
@@ -47,16 +80,11 @@ vec2 getLemniscatePosition(float t, float time) {
         sin(t) * cos(t)
     );
     
-    // Apply your InfinityTube distortion approach
-    float angle = t; // Using t as our angle parameter
-    
-    // Horizontal distortion: 1 + overallDistortion * sin((angle + time) * 2)
+    // Apply your existing InfinityTube distortion
+    float angle = t;
     float distortion = 1.0 + uOverallDistortion * sin((angle + time) * uDistortionFreq);
-    
-    // Vertical distortion: 1 + overallDistortion * -cos((angle + time) * 2) * 1.25
     float v_distortion = 1.0 + uOverallDistortion * -cos((angle + time) * uDistortionFreq) * uVDistortionMultiplier;
     
-    // Apply distortions (matching your InfinityTube logic)
     curvePoint.x *= distortion;
     curvePoint.y *= distortion * v_distortion;
     
@@ -64,18 +92,19 @@ vec2 getLemniscatePosition(float t, float time) {
     curvePoint *= uLemniscateScale;
     curvePoint *= uLemniscateAxisScale;
     
+    // Apply the new asymmetric logo distortion
+    curvePoint = applyLogoDistortion(curvePoint);
+    
     return curvePoint;
 }
 
 void main() {
-    // Normalized coordinates with aspect ratio correction
     vec2 uv = (vUv - 0.5) * vec2(iResolution.x/iResolution.y, 1.0) * 2.0;
     
     float field = 0.0;
     float sizeSquared = uSize * uSize;
     float blend = getMorphState(iTime);
     
-    // Enhanced motion with lemniscate pattern
     for (int i = 0; i < 500; i++) {
         if (i >= uBallCount) break;
         
@@ -87,19 +116,17 @@ void main() {
             sin(angle + iTime * uSpeed) * uSpread
         );
         
-        // Pattern 2: Customizable Lemniscate with InfinityTube-style distortion
+        // Pattern 2: Logo-distorted Lemniscate
         float lemniscateParam = angle + iTime * uSpeed * 0.3;
         vec2 pattern2 = getLemniscatePosition(lemniscateParam, iTime);
         
         // Blend between patterns
-        vec2 center = mix(pattern2, pattern2, blend);
+        vec2 center = mix(pattern1, pattern2, blend);
         
-        // Optimized distance calculation
         float dist = length(uv - center);
         field += sizeSquared / (dist * dist);
     }
     
-    // Visualize with threshold
     float mask = smoothstep(0.5, 0.55, field);
     gl_FragColor = vec4(uColor * mask, 1.0);
 }
