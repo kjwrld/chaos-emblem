@@ -3,20 +3,36 @@ import { useRef, useEffect, useState } from "react";
 import * as THREE from "three";
 import { useControls } from "leva";
 import metaballShader from "../shaders/metaballShader.glsl?raw";
+import Stats from "stats.js";
 
 export function MetaballPlane() {
     const materialRef = useRef<THREE.ShaderMaterial>(null);
     const { size, viewport } = useThree();
     const [resolution, setResolution] = useState(new THREE.Vector2());
     const resizeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const statsRef = useRef<Stats | null>(null);
+
+    // Initialize stats.js
+    useEffect(() => {
+        const stats = new Stats();
+        stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
+        document.body.appendChild(stats.dom);
+        statsRef.current = stats;
+
+        return () => {
+            document.body.removeChild(stats.dom);
+        };
+    }, []);
 
     // Simple controls
     const controls = useControls("Metaballs", {
         ballCount: { value: 250, min: 1, max: 500, step: 1 },
-        speed: { value: 0.5, min: 0, max: 2, step: 0.1 },
+        speed: { value: 5, min: 0, max: 2, step: 0.1 },
         spread: { value: 0.5, min: 0.1, max: 1.5, step: 0.05 },
         size: { value: 0.01, min: 0.01, max: 0.5, step: 0.01 },
-        morphSpeed: { value: 0.5, min: 0.01, max: 0.5, step: 0.01 },
+        morphSpeed: { value: 5, min: 0.01, max: 10.0, step: 0.01 },
+        holdDuration: { value: 5.0, min: 0.1, max: 5.0, step: 0.1 },
+        transitionDuration: { value: 5, min: 0.1, max: 3.0, step: 0.1 },
     });
 
     // Handle resize
@@ -39,8 +55,9 @@ export function MetaballPlane() {
     }, [size]);
 
     useFrame(({ clock }) => {
+        statsRef.current?.begin();
+
         if (materialRef.current) {
-            // Update all uniforms that can change via Leva
             materialRef.current.uniforms.iTime.value = clock.getElapsedTime();
             materialRef.current.uniforms.iResolution.value.set(
                 size.width,
@@ -52,8 +69,11 @@ export function MetaballPlane() {
             materialRef.current.uniforms.uBallCount.value = controls.ballCount;
             materialRef.current.uniforms.uMorphSpeed.value =
                 controls.morphSpeed;
+            materialRef.current.uniforms.uHoldDuration.value =
+                controls.holdDuration;
+            materialRef.current.uniforms.uTransitionDuration.value =
+                controls.transitionDuration;
 
-            // Update resolution if changed
             if (
                 !materialRef.current.uniforms.iResolution.value.equals(
                     resolution
@@ -62,6 +82,8 @@ export function MetaballPlane() {
                 materialRef.current.uniforms.iResolution.value.copy(resolution);
             }
         }
+
+        statsRef.current?.end();
     });
 
     return (
@@ -79,6 +101,8 @@ export function MetaballPlane() {
                     uBallCount: { value: controls.ballCount },
                     uColor: { value: new THREE.Color("#ffffff") },
                     uMorphSpeed: { value: controls.morphSpeed },
+                    uHoldDuration: { value: controls.holdDuration },
+                    uTransitionDuration: { value: controls.transitionDuration },
                 }}
                 fragmentShader={metaballShader}
                 vertexShader={`

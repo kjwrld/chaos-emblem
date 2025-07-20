@@ -10,26 +10,7 @@ uniform float uSize;
 uniform int uBallCount;
 uniform vec3 uColor;
 uniform float uMorphSpeed;
-uniform float uHoldDuration; // Seconds to hold at each pattern
-uniform float uTransitionDuration; // Seconds for morph transition
 varying vec2 vUv;
-
-float getMorphState(float time) {
-    float cycle = uHoldDuration * 2.0 + uTransitionDuration * 2.0;
-    float phase = mod(time, cycle);
-    
-    if (phase < uHoldDuration) {
-        return 0.0; // Hold first pattern
-    } else if (phase < uHoldDuration + uTransitionDuration) {
-        // Smooth transition to second pattern
-        return smoothstep(0.0, 1.0, (phase - uHoldDuration) / uTransitionDuration);
-    } else if (phase < uHoldDuration * 2.0 + uTransitionDuration) {
-        return 1.0; // Hold second pattern
-    } else {
-        // Smooth transition back to first pattern
-        return 1.0 - smoothstep(0.0, 1.0, (phase - (uHoldDuration * 2.0 + uTransitionDuration)) / uTransitionDuration);
-    }
-}
 
 void main() {
     // Normalized coordinates with aspect ratio correction
@@ -37,7 +18,6 @@ void main() {
     
     float field = 0.0;
     float sizeSquared = uSize * uSize;
-    float blend = getMorphState(iTime);
     
     // Basic motion with morphing effect
     for (int i = 0; i < 500; i++) {
@@ -45,7 +25,7 @@ void main() {
         
         float angle = float(i) * (TWO_PI / float(uBallCount));
         
-        // Original motion patterns
+        // Two different motion patterns to blend between
         vec2 pattern1 = vec2(
             cos(angle + iTime * uSpeed) * uSpread,
             sin(angle + iTime * uSpeed) * uSpread
@@ -56,12 +36,13 @@ void main() {
             sin(angle * 3.0 + iTime * uSpeed * 0.7) * uSpread * 0.8
         );
         
-        // Blend between patterns
+        // Blend between patterns based on time
+        float blend = sin(iTime * uMorphSpeed) * 0.5 + 0.5;
         vec2 center = mix(pattern1, pattern2, blend);
         
         // Optimized distance calculation
         float dist = length(uv - center);
-        field += sizeSquared / (dist * dist);
+        field += sizeSquared * inversesqrt(dist * dist * dist * dist);
     }
     
     // Visualize with threshold
