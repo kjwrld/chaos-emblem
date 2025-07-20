@@ -26,7 +26,7 @@ export function MetaballPlane() {
 
     // Simple controls
     const controls = useControls("Metaballs", {
-        ballCount: { value: 250, min: 1, max: 500, step: 1 },
+        ballCount: { value: 200, min: 1, max: 500, step: 1 },
         speed: { value: 1.0, min: 0, max: 2, step: 0.1 }, // Controls how fast the individual metaballs move in their patterns
         spread: { value: 0.5, min: 0.1, max: 1.5, step: 0.05 },
         size: { value: 0.01, min: 0.01, max: 0.5, step: 0.01 },
@@ -45,6 +45,11 @@ export function MetaballPlane() {
         bottomWidthMultiplier: { value: 0.75, min: 0.3, max: 1.5, step: 0.05 },
         centerOffset: { value: -0.1, min: -0.5, max: 0.5, step: 0.01 },
         asymmetryStrength: { value: 0.75, min: 0.0, max: 1.0, step: 0.05 },
+
+        starScale: { value: 0.5, min: 0.2, max: 1.5, step: 0.05 },
+        starInnerRadius: { value: 0.4, min: 0.1, max: 1.0, step: 0.05 },
+        starOuterRadius: { value: 1.0, min: 0.5, max: 1.5, step: 0.05 },
+        starRotation: { value: 0.0, min: -Math.PI, max: Math.PI, step: 0.1 },
     });
 
     // Handle resize
@@ -106,6 +111,14 @@ export function MetaballPlane() {
             materialRef.current.uniforms.uAsymmetryStrength.value =
                 controls.asymmetryStrength;
 
+            materialRef.current.uniforms.uStarScale.value = controls.starScale;
+            materialRef.current.uniforms.uStarInnerRadius.value =
+                controls.starInnerRadius;
+            materialRef.current.uniforms.uStarOuterRadius.value =
+                controls.starOuterRadius;
+            materialRef.current.uniforms.uStarRotation.value =
+                controls.starRotation;
+
             if (
                 !materialRef.current.uniforms.iResolution.value.equals(
                     resolution
@@ -152,6 +165,11 @@ export function MetaballPlane() {
                     },
                     uCenterOffset: { value: controls.centerOffset },
                     uAsymmetryStrength: { value: controls.asymmetryStrength },
+
+                    uStarScale: { value: controls.starScale },
+                    uStarInnerRadius: { value: controls.starInnerRadius },
+                    uStarOuterRadius: { value: controls.starOuterRadius },
+                    uStarRotation: { value: controls.starRotation },
                 }}
                 fragmentShader={metaballShader}
                 vertexShader={`
