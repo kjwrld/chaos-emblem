@@ -31,6 +31,18 @@ float getMorphState(float time) {
     }
 }
 
+// Lemniscate (infinity symbol) parametric function
+vec2 getLemniscatePosition(float t, float scale) {
+    float cosT = cos(t);
+    float sinT = sin(t);
+    float denom = 1.0 + sinT * sinT;
+    
+    return vec2(
+        scale * cosT / denom,
+        scale * sinT * cosT / denom
+    );
+}
+
 void main() {
     // Normalized coordinates with aspect ratio correction
     vec2 uv = (vUv - 0.5) * vec2(iResolution.x/iResolution.y, 1.0) * 2.0;
@@ -39,22 +51,25 @@ void main() {
     float sizeSquared = uSize * uSize;
     float blend = getMorphState(iTime);
     
-    // Basic motion with morphing effect
+    // Enhanced motion with lemniscate pattern
     for (int i = 0; i < 500; i++) {
         if (i >= uBallCount) break;
         
         float angle = float(i) * (TWO_PI / float(uBallCount));
         
-        // Original motion patterns
+        // Pattern 1: Original circular motion
         vec2 pattern1 = vec2(
             cos(angle + iTime * uSpeed) * uSpread,
             sin(angle + iTime * uSpeed) * uSpread
         );
         
-        vec2 pattern2 = vec2(
-            cos(angle * 2.0 + iTime * uSpeed * 0.5) * uSpread * 0.8,
-            sin(angle * 3.0 + iTime * uSpeed * 0.7) * uSpread * 0.8
-        );
+        // Pattern 2: Lemniscate (infinity symbol) with flowing motion
+        float lemniscateParam = angle + iTime * uSpeed * 0.3;
+        vec2 pattern2 = getLemniscatePosition(lemniscateParam, uSpread * 1.2);
+        
+        // Add some breathing motion to the lemniscate
+        // float breathe = 0.1 * sin(iTime * 2.0);
+        // pattern2 *= (1.0 + breathe);
         
         // Blend between patterns
         vec2 center = mix(pattern1, pattern2, blend);
