@@ -12,6 +12,14 @@ uniform vec3 uColor;
 uniform float uMorphSpeed;
 uniform float uHoldDuration; // Seconds to hold at each pattern
 uniform float uTransitionDuration; // Seconds for morph transition
+
+// Lemniscate distortion uniforms (matching your InfinityTube approach)
+uniform float uOverallDistortion; // Main distortion amount
+uniform float uVDistortionMultiplier; // Vertical distortion multiplier (like your 1.25)
+uniform float uDistortionFreq; // Distortion frequency multiplier (like your * 2)
+uniform float uLemniscateScale; // Overall scale
+uniform vec2 uLemniscateAxisScale; // X and Y axis scaling
+
 varying vec2 vUv;
 
 float getMorphState(float time) {
@@ -31,16 +39,32 @@ float getMorphState(float time) {
     }
 }
 
-// Lemniscate (infinity symbol) parametric function
-vec2 getLemniscatePosition(float t, float scale) {
-    float cosT = cos(t);
-    float sinT = sin(t);
-    float denom = 1.0 + sinT * sinT;
-    
-    return vec2(
-        scale * cosT / denom,
-        scale * sinT * cosT / denom
+// Lemniscate with distortion matching your InfinityTube approach
+vec2 getLemniscatePosition(float t, float time) {
+    // Base lemniscate curve
+    vec2 curvePoint = vec2(
+        sin(t),
+        sin(t) * cos(t)
     );
+    
+    // Apply your InfinityTube distortion approach
+    float angle = t; // Using t as our angle parameter
+    
+    // Horizontal distortion: 1 + overallDistortion * sin((angle + time) * 2)
+    float distortion = 1.0 + uOverallDistortion * sin((angle + time) * uDistortionFreq);
+    
+    // Vertical distortion: 1 + overallDistortion * -cos((angle + time) * 2) * 1.25
+    float v_distortion = 1.0 + uOverallDistortion * -cos((angle + time) * uDistortionFreq) * uVDistortionMultiplier;
+    
+    // Apply distortions (matching your InfinityTube logic)
+    curvePoint.x *= distortion;
+    curvePoint.y *= distortion * v_distortion;
+    
+    // Apply scaling
+    curvePoint *= uLemniscateScale;
+    curvePoint *= uLemniscateAxisScale;
+    
+    return curvePoint;
 }
 
 void main() {
@@ -59,20 +83,16 @@ void main() {
         
         // Pattern 1: Original circular motion
         vec2 pattern1 = vec2(
-            cos(angle + iTime * uSpeed) * uSpread,
+            -cos(angle + iTime * uSpeed) * uSpread,
             sin(angle + iTime * uSpeed) * uSpread
         );
         
-        // Pattern 2: Lemniscate (infinity symbol) with flowing motion
+        // Pattern 2: Customizable Lemniscate with InfinityTube-style distortion
         float lemniscateParam = angle + iTime * uSpeed * 0.3;
-        vec2 pattern2 = getLemniscatePosition(lemniscateParam, uSpread * 1.2);
-        
-        // Add some breathing motion to the lemniscate
-        // float breathe = 0.1 * sin(iTime * 2.0);
-        // pattern2 *= (1.0 + breathe);
+        vec2 pattern2 = getLemniscatePosition(lemniscateParam, iTime);
         
         // Blend between patterns
-        vec2 center = mix(pattern1, pattern2, blend);
+        vec2 center = mix(pattern2, pattern2, blend);
         
         // Optimized distance calculation
         float dist = length(uv - center);

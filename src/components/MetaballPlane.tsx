@@ -27,12 +27,19 @@ export function MetaballPlane() {
     // Simple controls
     const controls = useControls("Metaballs", {
         ballCount: { value: 250, min: 1, max: 500, step: 1 },
-        speed: { value: 0.5, min: 0, max: 2, step: 0.1 }, // Controls how fast the individual metaballs move in their patterns
+        speed: { value: 1.0, min: 0, max: 2, step: 0.1 }, // Controls how fast the individual metaballs move in their patterns
         spread: { value: 0.5, min: 0.1, max: 1.5, step: 0.05 },
         size: { value: 0.01, min: 0.01, max: 0.5, step: 0.01 },
         morphSpeed: { value: 7.5, min: 0.01, max: 10.0, step: 0.01 },
         holdDuration: { value: 10.0, min: 0.1, max: 10.0, step: 0.1 },
         transitionDuration: { value: 7.5, min: 0.1, max: 10.0, step: 0.1 },
+        // Lemniscate controls matching your InfinityTube parameters
+        overallDistortion: { value: 0.2, min: 0.0, max: 1.0, step: 0.01 }, // Like your 0.425
+        vDistortionMultiplier: { value: 1.0, min: 0.1, max: 3.0, step: 0.05 }, // Like your 1.25
+        distortionFreq: { value: 0.0, min: 0.0, max: 5.0, step: 0.1 }, // Like your * 2
+        lemniscateScale: { value: 1.0, min: 0.1, max: 3.0, step: 0.1 }, // Overall scale
+        lemniscateScaleX: { value: 0.5, min: 0.1, max: 2.0, step: 0.05 }, // Like your scaleX
+        lemniscateScaleY: { value: 1.0, min: 0.1, max: 2.0, step: 0.05 }, // Like your scaleY
     });
 
     // Handle resize
@@ -74,6 +81,19 @@ export function MetaballPlane() {
             materialRef.current.uniforms.uTransitionDuration.value =
                 controls.transitionDuration;
 
+            materialRef.current.uniforms.uOverallDistortion.value =
+                controls.overallDistortion;
+            materialRef.current.uniforms.uVDistortionMultiplier.value =
+                controls.vDistortionMultiplier;
+            materialRef.current.uniforms.uDistortionFreq.value =
+                controls.distortionFreq;
+            materialRef.current.uniforms.uLemniscateScale.value =
+                controls.lemniscateScale;
+            materialRef.current.uniforms.uLemniscateAxisScale.value.set(
+                controls.lemniscateScaleX,
+                controls.lemniscateScaleY
+            );
+
             if (
                 !materialRef.current.uniforms.iResolution.value.equals(
                     resolution
@@ -103,6 +123,18 @@ export function MetaballPlane() {
                     uMorphSpeed: { value: controls.morphSpeed },
                     uHoldDuration: { value: controls.holdDuration },
                     uTransitionDuration: { value: controls.transitionDuration },
+                    uOverallDistortion: { value: controls.overallDistortion },
+                    uVDistortionMultiplier: {
+                        value: controls.vDistortionMultiplier,
+                    },
+                    uDistortionFreq: { value: controls.distortionFreq },
+                    uLemniscateScale: { value: controls.lemniscateScale },
+                    uLemniscateAxisScale: {
+                        value: new THREE.Vector2(
+                            controls.lemniscateScaleX,
+                            controls.lemniscateScaleY
+                        ),
+                    },
                 }}
                 fragmentShader={metaballShader}
                 vertexShader={`
