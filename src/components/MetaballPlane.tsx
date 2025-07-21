@@ -23,12 +23,17 @@ export function MetaballPlane() {
         ]);
     }, []);
 
+    const noiseTexture = useMemo(() => {
+        const loader = new THREE.TextureLoader();
+        return loader.load("/noise/noiseTexture.png");
+    }, []);
+
     const CONTROLS = useMemo(
         () => ({
-            ballCount: 250,
-            speed: 1.0,
+            ballCount: 20,
+            speed: 0.5,
             spread: 0.35,
-            size: 0.01,
+            size: 0.03,
             morphSpeed: 5.0,
             holdDuration: 15.0,
             transitionDuration: 5.0,
@@ -118,10 +123,25 @@ export function MetaballPlane() {
             uStarInnerRadius: { value: CONTROLS.starInnerRadius },
             uStarOuterRadius: { value: CONTROLS.starOuterRadius },
             uStarRotation: { value: CONTROLS.starRotation },
-            uEnvMap: { value: cubeTexture },
+            uEnvMap: { value: null },
             uCameraPos: { value: new THREE.Vector3() },
-            uNormalStrength: { value: 0.5 }, // Start subtle
-            uReflectionIntensity: { value: 0.8 }, // Keep your original intensity
+            uNormalStrength: { value: 2.0 }, // Start subtle
+            uReflectionIntensity: { value: 1.0 }, // Keep your original intensity
+            uBaseColor: { value: new THREE.Color(1.0, 1.0, 1.0) },
+            uGlowColor: { value: new THREE.Color(0.0, 0.0, 0.0) },
+            uSaturation: { value: 0.0 },
+            uBloomIntensity: { value: 0.0 },
+            uChromaticAberration: { value: 0.0 },
+            uNoiseTexture: { value: null },
+            uBloomRadius: { value: 0.0 },
+            uLuminanceBoost: { value: 0.0 },
+            uReflectionStrength: { value: 0.0 },
+            uFresnelPower: { value: 0.0 },
+            uRoughness: { value: 0.0 },
+            uMetallic: { value: 0.0 },
+            uLightDirection: { value: new THREE.Vector3(0, 1, 0) },
+            uLightColor: { value: new THREE.Color(0, 0, 0) },
+            uAmbientStrength: { value: 1.0 },
         }),
         [CONTROLS, size.width, size.height, whiteColor, cubeTexture]
     );
