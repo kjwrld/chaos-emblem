@@ -11,11 +11,23 @@ export function MetaballPlane() {
     const resizeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
     const statsRef = useRef<Stats | null>(null);
 
+    const cubeTexture = useMemo(() => {
+        const loader = new THREE.CubeTextureLoader();
+        return loader.load([
+            "/cubemaps/px.jpg",
+            "/cubemaps/nx.jpg",
+            "/cubemaps/py.jpg",
+            "/cubemaps/ny.jpg",
+            "/cubemaps/pz.jpg",
+            "/cubemaps/nz.jpg",
+        ]);
+    }, []);
+
     const CONTROLS = useMemo(
         () => ({
             ballCount: 250,
             speed: 1.0,
-            spread: 0.5,
+            spread: 0.35,
             size: 0.01,
             morphSpeed: 5.0,
             holdDuration: 15.0,
@@ -106,8 +118,12 @@ export function MetaballPlane() {
             uStarInnerRadius: { value: CONTROLS.starInnerRadius },
             uStarOuterRadius: { value: CONTROLS.starOuterRadius },
             uStarRotation: { value: CONTROLS.starRotation },
+            uEnvMap: { value: cubeTexture },
+            uCameraPos: { value: new THREE.Vector3() },
+            uNormalStrength: { value: 0.5 }, // Start subtle
+            uReflectionIntensity: { value: 0.8 }, // Keep your original intensity
         }),
-        [CONTROLS, size.width, size.height, whiteColor]
+        [CONTROLS, size.width, size.height, whiteColor, cubeTexture]
     );
 
     const vertexShader = useMemo(
@@ -121,12 +137,13 @@ export function MetaballPlane() {
         []
     );
 
-    useFrame(({ clock }) => {
+    useFrame(({ clock, camera }) => {
         statsRef.current?.begin();
 
         if (materialRef.current) {
             // Only update time and resolution - everything else is static
             materialRef.current.uniforms.iTime.value = clock.getElapsedTime();
+            materialRef.current.uniforms.uCameraPos.value.copy(camera.position);
 
             // Only update resolution if it changed
             if (
