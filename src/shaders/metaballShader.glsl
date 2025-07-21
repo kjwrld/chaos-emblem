@@ -21,10 +21,10 @@ uniform float uLemniscateScale;
 uniform vec2 uLemniscateAxisScale;
 
 // New asymmetric distortion uniforms for logo matching
-uniform float uTopWidthMultiplier;    // How much wider the top should be
-uniform float uBottomWidthMultiplier; // How much narrower the bottom should be  
-uniform float uCenterOffset;          // Vertical offset for the center point
-uniform float uAsymmetryStrength;     // Overall strength of the asymmetric effect
+uniform float uTopWidthMultiplier;
+uniform float uBottomWidthMultiplier; 
+uniform float uCenterOffset;
+uniform float uAsymmetryStrength;
 
 // Star uniforms
 uniform float uStarScale;
@@ -35,8 +35,8 @@ uniform float uStarRotation;
 varying vec2 vUv;
 
 float getMorphState(float time) {
-    // 3-state cycle: Lemniscate -> Star -> Circle -> back to Lemniscate
-    float cycle = (uHoldDuration * 3.0) + (uTransitionDuration * 3.0); // Full cycle with all transitions
+    // 3-state cycle: Lemniscate -> Star -> Chaos -> back to Lemniscate
+    float cycle = (uHoldDuration * 3.0) + (uTransitionDuration * 3.0);
     float phase = mod(time * uMorphSpeed, cycle);
     
     float state1End = uHoldDuration;
@@ -44,27 +44,23 @@ float getMorphState(float time) {
     float state2End = transition1End + uHoldDuration;
     float transition2End = state2End + uTransitionDuration;
     float state3End = transition2End + uHoldDuration;
-    float transition3End = state3End + uTransitionDuration; // Circle back to Lemniscate
+    float transition3End = state3End + uTransitionDuration;
     
     if (phase < state1End) {
         return 0.0; // Hold lemniscate
     } else if (phase < transition1End) {
-        // Transition lemniscate -> star (0.0 -> 1.0)
         return smoothstep(0.0, 1.0, (phase - state1End) / uTransitionDuration);
     } else if (phase < state2End) {
         return 1.0; // Hold star
     } else if (phase < transition2End) {
-        // Transition star -> circle (1.0 -> 2.0)
         return 1.0 + smoothstep(0.0, 1.0, (phase - state2End) / uTransitionDuration);
     } else if (phase < state3End) {
-        return 2.0; // Hold circle
+        return 2.0; // Hold chaos
     } else {
-        // Transition circle -> lemniscate (2.0 -> 3.0, then wrap back to 0.0)
         return 2.0 + smoothstep(0.0, 1.0, (phase - state3End) / uTransitionDuration);
     }
 }
 
-// Function to apply asymmetric distortion based on vertical position
 vec2 applyLogoDistortion(vec2 point) {
     float y = point.y;
     float normalizedY = (y + 1.0) * 0.5;
@@ -85,7 +81,6 @@ vec2 applyLogoDistortion(vec2 point) {
     return point;
 }
 
-// Enhanced lemniscate with logo-matching distortion
 vec2 getLemniscatePosition(float t, float time) {
     vec2 curvePoint = vec2(
         sin(t),
@@ -106,14 +101,12 @@ vec2 getLemniscatePosition(float t, float time) {
     return curvePoint;
 }
 
-// Get 8-pointed star vertex position
 vec2 getStarVertex(int vertexIndex) {
     float angle = float(vertexIndex) * PI / 4.0 + uStarRotation;
     float radius = (vertexIndex % 2 == 0) ? uStarOuterRadius : uStarInnerRadius;
     return vec2(cos(angle), sin(angle)) * radius * uStarScale;
 }
 
-// Get star position using skip-2 pattern (A->D->G->B->E->H->C->F->A)
 vec2 getStarPosition(float t, float time) {
     float ballProgress = t + time * uSpeed * 0.3;
     
@@ -140,7 +133,7 @@ void main() {
     float sizeSquared = uSize * uSize;
     float morphState = getMorphState(iTime);
     
-    for (int i = 0; i < 500; i++) {
+    for (int i = 0; i < 250; i++) {
         if (i >= uBallCount) break;
         
         float angle = float(i) * (TWO_PI / float(uBallCount));
@@ -148,15 +141,12 @@ void main() {
         // Pattern 1: Logo-distorted Lemniscate
         float lemniscateParam = angle + iTime * uSpeed * 0.3;
         vec2 pattern1 = getLemniscatePosition(lemniscateParam, iTime);
+
+        // Pattern 2: Logo-distorted Lemniscate again
+        vec2 pattern2 = getLemniscatePosition(lemniscateParam, iTime);
         
-        // Pattern 2: 8-pointed star with skip-2 pattern
-        vec2 pattern2 = getStarPosition(angle, iTime);
-        
-        // Pattern 3: Original circular motion
-        vec2 pattern3 = vec2(
-            cos(angle + iTime * uSpeed) * uSpread,
-            sin(angle + iTime * uSpeed) * uSpread
-        );
+        // Pattern 3: 8-pointed star with skip-2 pattern
+        vec2 pattern3 = getStarPosition(angle, iTime);
         
         // Blend between patterns based on morphState
         vec2 center;
@@ -164,18 +154,19 @@ void main() {
             // Lemniscate to Star (0.0 -> 1.0)
             center = mix(pattern1, pattern2, morphState);
         } else if (morphState < 2.0) {
-            // Star to Circle (1.0 -> 2.0)
+            // Star to Chaos (1.0 -> 2.0)
             center = mix(pattern2, pattern3, morphState - 1.0);
         } else if (morphState < 3.0) {
-            // Circle back to Lemniscate (2.0 -> 3.0)
+            // Chaos back to Lemniscate (2.0 -> 3.0)
             center = mix(pattern3, pattern1, morphState - 2.0);
         } else {
-            // Fallback (shouldn't happen with proper modulo)
+            // Fallback
             center = pattern1;
         }
         
         float dist = length(uv - center);
         field += sizeSquared / (dist * dist);
+        if (field > 2.0) break;
     }
     
     float mask = smoothstep(0.5, 0.55, field);
